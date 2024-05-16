@@ -3,62 +3,73 @@ import {
   getDownloadURL,
   ref,
   uploadBytesResumable as uploadBytes,
+  FirebaseStorage,
 } from "firebase/storage";
 import { useAppDispatch } from "hooks/use-reducer-hooks/useReducerHooks";
 import React, { useEffect, useState } from "react";
-import { storage } from "setup/firebase";
 import { createToast } from "toastSlice";
 import { v4 as uuid } from "uuid";
 
-type uploadMediaParams = {
+type MediaType = "image" | "video" | "audio" | "file";
+
+type UploadMediaParams = {
   mediaFile: File;
-  mediaInputRef?: React.Ref<HTMLInputElement>;
-  storage: any;
+  mediaType: MediaType;
+  mediaInputRef?: React.RefObject<HTMLInputElement>;
+  storage: FirebaseStorage;
 };
 
-const useUploadMedia = (storage: any) => {
+const useUploadMedia = (storage: FirebaseStorage) => {
   const [mediaURL, setMediaURL] = useState("");
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [isMediaPending, setIsMediaPending] = useState<boolean>(false);
   const [mediaStorageName, setMediaStorageName] = useState("");
-  const [upLoadTask, setUploadTask] = useState<any>(null);
-
+  const [uploadTask, setUploadTask] = useState<any>(null);
   const dispatch = useAppDispatch();
 
-  useEffect(()=> {
-    if(upLoadTask) {
-      upLoadTask.cancel();
-      console.log("upload task cancelled")
-    }
-  }, [upLoadTask])
+  useEffect(() => {
+    return () => {
+      if (uploadTask) {
+        uploadTask.cancel();
+        console.log("Upload task canceled");
+      }
+    };
+  }, [uploadTask]);
 
-  const uploadMedia = async ({mediaFile, mediaInputRef, storage}: uploadMediaParams) => {
+  const uploadMedia = async ({
+    mediaFile,
+    mediaType,
+    mediaInputRef,
+    storage,
+  }: UploadMediaParams) => {
     try {
       setIsMediaPending(true);
       const mediaUpload = mediaFile;
-      if(!mediaUpload) return;
+      if (!mediaUpload) return;
 
-      const mediaName = `media/${mediaUpload.name + uuid()}`;
+      const mediaName = `${mediaType}/${mediaUpload.name + uuid()}`;
       const mediaRef = ref(storage, mediaName);
-
       setMediaStorageName(mediaName);
 
-      const upLoadTaskInstance = uploadBytes(mediaRef, mediaUpload);
-      setUploadTask(upLoadTaskInstance);
+      const uploadTaskInstance = uploadBytes(mediaRef, mediaUpload);
+      setUploadTask(uploadTaskInstance);
 
-      upLoadTaskInstance.on(
+      uploadTaskInstance.on(
         "state_changed",
         (snapshot) => {
-          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          const progress =
+            (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
           setUploadProgress(progress);
         },
         (error) => {
-          dispatch(createToast("something went wrong."));
+          dispatch(createToast(`Upload failed: ${error.message}`));
           setIsMediaPending(false);
-          setUploadProgress(0)
+          setUploadProgress(0);
         },
         async () => {
-          const downloadURL = await getDownloadURL(upLoadTask.snapshot.ref);
+          const downloadURL = await getDownloadURL(
+            uploadTaskInstance.snapshot.ref
+          );
           if (mediaInputRef && mediaInputRef.current) {
             mediaInputRef.current.value = "";
           }
@@ -66,31 +77,36 @@ const useUploadMedia = (storage: any) => {
           setIsMediaPending(false);
           setUploadProgress(100);
         }
-      );}
-    catch (error: any) {
-      console.error("Error uploading media", error.message);
-      dispatch(createToast("something went wrong while uploading media"));
+      );
+    } catch (error: any) {
+      console.error("Error uploading media:", error);
+      dispatch(createToast("Something went wrong while uploading media."));
       setIsMediaPending(false);
       setUploadProgress(0);
     }
-
-   const removeUploadMedia = () => {
-    if (!mediaStorageName) return;
-
-    const mediaRef = ref(storage, mediaStorageName);
-    deleteObject(mediaRef)
-    .then(() => {
-      setMediaURL("");
-      setMediaStorageName("");
-    })
-    .catch((error) => {
-      console.error("Error deleting media", error.message);
-      dispatch(createToast("something went wrong while deleting media"));
-    });
   };
 
-  return { uploadMedia, removeUploadMedia, mediaURL, isMediaPending, uploadProgress};
-};
+  const removeUploadMedia = () => {
+    if (!mediaStorageName) return;
+    const mediaRef = ref(storage, mediaStorageName);
+    deleteObject(mediaRef)
+      .then(() => {
+        setMediaURL("");
+        setMediaStorageName("");
+      })
+      .catch((error) => {
+        console.error("Error removing media:", error);
+        dispatch(createToast("Something went wrong while removing media."));
+      });
+  };
+
+  return {
+    uploadMedia,
+    removeUploadMedia,
+    mediaURL,
+    isMediaPending,
+    uploadProgress,
+  };
 };
 
 export default useUploadMedia;
