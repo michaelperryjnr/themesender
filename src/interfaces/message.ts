@@ -5,7 +5,8 @@ export default interface Message {
   senderId: string;
   message: string;
   date: Timestamp;
-  img: string;
+  mediaURL: string;
   lastEdited: Timestamp | null;
   isEdited: boolean;
+  mediaType?: |"image" | "video" | "audio" | "file" | "none";
 }
