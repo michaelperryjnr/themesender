@@ -3,7 +3,7 @@ import useGetUser from "./use-get-user/useGetUser";
 import useFormatDate from "./use-format-date/useFormatDate";
 import useGetUserStatus from "./use-get-user-status/useGetUserStatus";
 import useGetUsers from "./use-get-users/useGetUsers";
-import useUploadImage from "./use-upload-image/useUploadImage";
+import useUploadMedia from "./use-upload-media/useUploadMedia";
 import useGetLastSeen from "./use-get-last-seen/useGetLastSeen";
 
 import {
@@ -19,6 +19,6 @@ export {
   useAppSelector,
   useAppDispatch,
   useGetUsers,
-  useUploadImage,
+  useUploadMedia,
   useGetLastSeen
 };
