@@ -65,7 +65,7 @@ const useSendMessage = () => {
       message,
       senderId: currentUser.uid,
       date: Timestamp.now(),
-      img: "",
+      mediaURL: "",
       isEdited: false,
       lastEdited: null,
     };
@@ -80,21 +80,22 @@ const useSendMessage = () => {
     }
   };
 
-  const sendImage = (imgURL: string) => {
+  const sendMedia = (mediaURL: string, mediaType:Message["mediaType"]) => {
     const chatDocRef = doc(db, "chats", chatId);
     const messageInfo: Message = {
       id: uuid(),
       message: "",
       senderId: currentUser.uid,
       date: Timestamp.now(),
-      img: imgURL,
+      mediaURL: mediaURL,
+      mediaType: mediaType,
       isEdited: false,
       lastEdited: null,
     };
     updateDoc(chatDocRef, {
       messages: arrayUnion(messageInfo),
     });
-    createLastMessage("sent a picture.");
+    createLastMessage(`sent a ${mediaType}`);
   };
 
   const deleteMsg = (msg: Message) => {
@@ -121,7 +122,7 @@ const useSendMessage = () => {
     createLastMessage("edited a message.");
   };
 
-  return { sendMessage, sendImage, deleteMsg, editMsg };
+  return { sendMessage, sendMedia, deleteMsg, editMsg };
 };
 
 export default useSendMessage;
